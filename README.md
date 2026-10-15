@@ -14,6 +14,23 @@ A responsive, static multiple-linear-regression dashboard designed for GitHub Pa
 - Download test-set predictions as CSV.
 - Deploy as a static GitHub Pages site using GitHub Actions.
 
+## CRISP-DM 流程說明
+
+本專案依循 CRISP-DM（Cross-Industry Standard Process for Data Mining）資料探勘流程，將各階段應用於 CSV 線性回歸分析：
+
+1. **Business Understanding（商業理解）**
+   確認分析目的與預測問題，例如使用輸入特徵預測連續數值目標。先判斷問題是否適合以線性回歸處理；若目標是類別，應考慮分類模型。
+2. **Data Understanding（資料理解）**
+   匯入 CSV 後檢視欄位與資料筆數，辨識數值目標、輸入特徵、日期、類別欄位，以及可能是識別碼或不適合分析的欄位。
+3. **Data Preparation（資料準備）**
+   將日期欄位轉為數值、將低類別數的文字欄位轉為虛擬變數，略過識別碼與高類別數文字欄位，並排除所選目標或特徵有缺漏、格式錯誤或非有限值的資料列。
+4. **Modeling（建模）**
+   以訓練資料建立多元線性回歸模型；可設定特徵選擇方式、最多使用的特徵數、訓練／測試資料比例及隨機種子。特徵數比較與選擇使用訓練資料內的驗證切分，不以測試資料挑選模型。
+5. **Evaluation（評估）**
+   使用保留的測試資料評估模型，顯示 R²、MAE、MSE、RMSE，並提供不同特徵數的效能比較、回歸方程式、係數、即時預測及測試集殘差檢視。
+6. **Deployment（部署）**
+   透過 GitHub Actions 執行測試並部署靜態網站至 GitHub Pages。使用者上傳的 CSV 在瀏覽器內分析，不會隨部署傳送至伺服器。
+
 ## Run locally
 
 No build step or server is required. Open `index.html` in a browser, or serve the repository with any static file server. Papa Parse is loaded from jsDelivr to read CSV files.
