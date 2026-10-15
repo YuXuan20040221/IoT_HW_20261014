@@ -1,0 +1,25 @@
+Record,Quarterly Sales,Digital Spend,Store Count,Region,Customer Segment,Notes
+1,42,3,8,North,Small,example
+2,48,4,7,South,Large,example
+3,53,4,9,East,Small,example
+4,58,5,10,West,Medium,example
+5,64,6,9,North,Large,example
+6,69,6,11,South,Medium,example
+7,74,7,12,East,Small,example
+8,81,8,12,West,Large,example
+9,83,8,13,North,Medium,example
+10,91,9,14,South,Small,example
+11,94,9,13,East,Large,example
+12,101,10,15,West,Medium,example
+13,103,11,16,North,Small,example
+14,111,11,16,South,Large,example
+15,116,12,17,East,Medium,example
+16,121,13,18,West,Small,example
+17,125,13,18,North,Large,example
+18,132,14,19,South,Medium,example
+19,137,15,20,East,Small,example
+20,141,15,20,West,Large,example
+21,148,16,21,North,Medium,example
+22,152,16,22,South,Small,example
+23,159,17,22,East,Large,example
+24,164,18,23,West,Medium,example

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f8fc">
+    <meta name="description" content="在瀏覽器中執行 CSV 多元線性回歸分析，資料不會上傳到伺服器。">
+    <title>CSV Regression Explorer</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="CSV Regression Explorer 首頁">
+        <span class="brand-mark">↗</span>
+        <span>CSV Regression Explorer</span>
+        <span class="brand-tag">IN-BROWSER</span>
+      </a>
+      <span class="privacy-note"><span class="privacy-dot"></span>資料只在你的瀏覽器處理</span>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">MULTIPLE LINEAR REGRESSION</p>
+          <h1>資料探索與回歸預測</h1>
+          <p>匯入 CSV、設定分析參數，檢視特徵選擇、預測效能與模型結果。</p>
+        </div>
+        <div class="hero-badges">
+          <span>🔒 私密本機分析</span>
+          <span>📈 交叉檢視特徵數</span>
+          <span>✓ R²・MAE・MSE・RMSE</span>
+        </div>
+      </section>
+
+      <section class="panel import-panel" aria-labelledby="upload-heading">
+        <div>
+          <p class="section-kicker">STEP 1</p>
+          <h2 id="upload-heading">匯入資料集</h2>
+          <p class="muted">支援有標題列的 CSV。數值欄位可直接分析；低類別數文字欄位會自動轉成虛擬變數。</p>
+        </div>
+        <label class="upload-button" for="csv-file">
+          <span aria-hidden="true">↑</span> 選擇 CSV 檔案
+          <input id="csv-file" type="file" accept=".csv,text/csv">
+        </label>
+        <div id="file-status" class="file-status" role="status">尚未選擇檔案</div>
+      </section>
+
+      <div id="app-message" class="message" role="status" hidden></div>
+
+      <section id="analysis-controls" class="panel controls-panel" aria-labelledby="controls-heading" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">STEP 2</p>
+            <h2 id="controls-heading">設定分析參數</h2>
+          </div>
+          <span id="dataset-summary" class="summary-pill"></span>
+        </div>
+        <div class="control-grid">
+          <label class="field">
+            <span>預測目標（Target）</span>
+            <select id="target-select"></select>
+            <small>只列出可轉換為連續數值的欄位。</small>
+          </label>
+          <label class="field">
+            <span>測試資料比例（%）</span>
+            <input id="test-size" type="number" min="10" max="40" step="5" value="20" inputmode="numeric">
+            <small>允許 10–40%；預設 20%。</small>
+          </label>
+          <label class="field">
+            <span>最多使用特徵數</span>
+            <input id="feature-count" type="number" min="1" max="20" value="5" inputmode="numeric">
+            <small id="feature-count-hint">預設最多 5 個特徵。</small>
+          </label>
+          <label class="field">
+            <span>隨機種子</span>
+            <input id="random-seed" type="number" min="0" max="999999" step="1" value="42" inputmode="numeric">
+            <small>相同資料與種子會得到相同切分。</small>
+          </label>
+          <label class="field field-wide">
+            <span>特徵選擇方式</span>
+            <select id="selection-method">
+              <option value="forward">逐步選擇（依訓練集改善程度排序）</option>
+              <option value="all">使用勾選順序</option>
+            </select>
+            <small>逐步選擇只使用訓練資料，避免以測試集挑選特徵。</small>
+          </label>
+        </div>
+
+        <div class="feature-heading">
+          <div>
+            <h3>輸入特徵</h3>
+            <p class="muted">至少勾選 1 個、最多 39 個；識別碼與高類別數文字欄位會自動略過。</p>
+          </div>
+          <div class="feature-actions">
+            <button id="select-defaults" class="text-button" type="button">選取建議欄位</button>
+            <span id="selected-count" class="summary-pill">0 個已選</span>
+          </div>
+        </div>
+        <div id="feature-list" class="feature-list"></div>
+        <div id="column-notes" class="column-notes"></div>
+        <button id="run-analysis" class="primary-button" type="button">執行回歸分析 <span aria-hidden="true">→</span></button>
+      </section>
+
+      <section id="results" hidden aria-live="polite">
+        <div class="results-heading">
+          <div>
+            <p class="section-kicker">ANALYSIS RESULTS</p>
+            <h2>模型結果與效能評估</h2>
+          </div>
+          <button id="download-results" class="secondary-button" type="button">下載預測結果 CSV</button>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card metric-accent-green">
+            <span class="metric-label">R-SQUARED</span>
+            <strong id="metric-r2">—</strong>
+            <span class="metric-note">測試集解釋變異比例</span>
+          </article>
+          <article class="metric-card metric-accent-purple">
+            <span class="metric-label">MEAN ABSOLUTE ERROR</span>
+            <strong id="metric-mae">—</strong>
+            <span class="metric-note">平均絕對預測誤差</span>
+          </article>
+          <article class="metric-card metric-accent-blue">
+            <span class="metric-label">MEAN SQUARED ERROR</span>
+            <strong id="metric-mse">—</strong>
+            <span class="metric-note">平均平方預測誤差</span>
+          </article>
+          <article class="metric-card metric-accent-orange">
+            <span class="metric-label">ROOT MEAN SQUARED ERROR</span>
+            <strong id="metric-rmse">—</strong>
+            <span class="metric-note">與目標欄位相同單位</span>
+          </article>
+        </div>
+
+        <div class="active-row">
+          <div><strong>目前使用的特徵</strong><span id="active-features"></span></div>
+          <span id="split-summary" class="success-pill"></span>
+        </div>
+
+        <div class="chart-grid">
+          <article class="panel chart-card">
+            <div class="card-heading"><div><h3>RMSE 與特徵數</h3><p class="muted">越低代表測試集預測誤差越小</p></div><span class="chart-icon">⌁</span></div>
+            <div id="rmse-chart" class="chart" aria-label="RMSE 與特徵數折線圖"></div>
+          </article>
+          <article class="panel chart-card">
+            <div class="card-heading"><div><h3>R² 與特徵數</h3><p class="muted">越高代表模型解釋力越高</p></div><span class="chart-icon green">↗</span></div>
+            <div id="r2-chart" class="chart" aria-label="R 平方與特徵數折線圖"></div>
+          </article>
+        </div>
+
+        <article class="panel equation-panel">
+          <p class="section-kicker">FITTED REGRESSION EQUATION</p>
+          <div id="equation" class="equation"></div>
+        </article>
+
+        <div class="details-grid">
+          <article class="panel table-panel">
+            <div class="card-heading"><div><h3>模型係數</h3><p class="muted">各特徵對模型預測值的線性貢獻</p></div></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>預測變數</th><th>係數</th><th>方向</th></tr></thead>
+                <tbody id="coefficient-rows"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel predictor-panel">
+            <div class="card-heading"><div><h3>即時預測試算</h3><p class="muted">調整輸入值，即時查看模型預測</p></div><span class="live-pill">● 即時</span></div>
+            <div id="predictor-fields" class="predictor-fields"></div>
+            <div class="prediction-result">
+              <span>模型預測值</span>
+              <strong id="live-prediction">—</strong>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel residual-panel">
+          <div class="card-heading"><div><h3>測試集預測與殘差檢視</h3><p class="muted">依絕對誤差由大至小列出最多 10 筆測試資料</p></div><span id="residual-count" class="summary-pill"></span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>排序</th><th>資料列</th><th>實際值</th><th>預測值</th><th>殘差</th><th>絕對誤差</th><th>診斷</th></tr></thead>
+              <tbody id="residual-rows"></tbody>
+            </table>
+          </div>
+        </article>
+        <p class="disclaimer">此頁提供探索性線性回歸分析。模型表現不代表因果關係或未來資料的保證；類別目標請改用分類模型。</p>
+      </section>
+    </main>
+    <footer class="footer"><span>CSV Regression Explorer</span><span>靜態網站 · GitHub Pages · 瀏覽器端分析</span></footer>
+  </body>
+</html>
